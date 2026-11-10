@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:16-bookworm
+    container_name: nest-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${TYPEORM_DATABASE:-nest_tasks}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${TYPEORM_DATABASE:-nest_tasks}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  # Отдельный одноразовый контейнер применяет Prisma schema к nest_tasks_prisma.
+  prisma-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    command: ["npx", "prisma", "db", "push"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/nest_tasks_prisma?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: nest-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      TYPEORM_DATABASE: ${TYPEORM_DATABASE:-nest_tasks}
+      TYPEORM_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${TYPEORM_DATABASE:-nest_tasks}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/nest_tasks_prisma?schema=public
+      JWT_SECRET: ${JWT_SECRET:-development_only_change_this_secret_2026}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+    depends_on:
+      db:
+        condition: service_healthy
+      prisma-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
