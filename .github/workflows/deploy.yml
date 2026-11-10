@@ -44,15 +44,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_LOGIN }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push optimized Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_LOGIN }}/nest-tasks:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/nest-tasks:${{ github.sha }}
+      - name: Build and push Docker image
+  uses: docker/build-push-action@v6
+  with:
+    context: .
+    push: true
+    tags: |
+      ${{ secrets.DOCKERHUB_LOGIN }}/nest-tasks:latest
+      ${{ secrets.DOCKERHUB_LOGIN }}/nest-tasks:${{ github.sha }}
 
   deploy-heroku:
     runs-on: ubuntu-latest
