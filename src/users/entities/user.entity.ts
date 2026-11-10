@@ -1,3 +1,4 @@
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -15,13 +16,13 @@ export class User {
   id!: number;
 
   @Column({ type: 'varchar', length: 50, unique: true })
-username!: string;
+  username!: string;
 
-@Column({ type: 'varchar', unique: true })
-email!: string;
+  @Column({ type: 'varchar', length: 100, unique: true })
+  email!: string;
 
-@Column({ type: 'varchar' })
-password!: string;
+  @Column({ type: 'varchar', select: false })
+  password!: string;
 
   @OneToMany(() => Task, (task) => task.user)
   tasks!: Task[];
